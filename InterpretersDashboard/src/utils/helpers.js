@@ -57,16 +57,17 @@ export function timeAgo(dt) {
 }
 
 export function callStatusLabel(status) {
-    const map = { 0: 'Pending', 1: 'Accepted', 2: 'Completed', 3: 'Cancelled' };
+    const map = { 0: 'Disconnected', 1: 'Connecting', 2: 'Completed', 3: 'Cancelled', 4: 'In Session' };
     return map[status] ?? 'Unknown';
 }
 
 export function callStatusBadge(status) {
     const map = {
-        0: 'badge-yellow',
-        1: 'badge-blue',
+        0: 'badge-gray',
+        1: 'badge-yellow',
         2: 'badge-green',
         3: 'badge-red',
+        4: 'badge-blue',
     };
     return map[status] ?? 'badge-gray';
 }

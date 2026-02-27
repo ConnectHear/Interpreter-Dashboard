@@ -8,27 +8,27 @@ async function get(path) {
 
 export const api = {
     // Dashboard
-    getDashboardStats: () => get('/dashboard/stats'),
+    getDashboardStats: (f = 'today') => get(`/dashboard/stats?filter=${f}`),
     getCallsTrend: () => get('/dashboard/calls-trend'),
-    getRecentSessions: () => get('/dashboard/recent-sessions'),
+    getRecentSessions: (f = 'today') => get(`/dashboard/recent-sessions?filter=${f}`),
     getInterpreterStatus: () => get('/dashboard/interpreter-status'),
 
     // Interpreters
-    getInterpreters: () => get('/interpreters'),
-    getInterpreterById: (id, filter = 'all') =>
-        get(`/interpreters/${encodeURIComponent(id)}?filter=${filter}`),
+    getInterpreters: (f = 'all', p = 1, s = '') => get(`/interpreters?filter=${f}&page=${p}&search=${encodeURIComponent(s)}`),
+    getInterpreterById: (id, f = 'all') =>
+        get(`/interpreters/${encodeURIComponent(id)}?filter=${f}`),
 
     // Customers
-    getCustomers: () => get('/customers'),
-    getCustomerById: (id) => get(`/customers/${encodeURIComponent(id)}`),
+    getCustomers: (f = 'all', p = 1, s = '') => get(`/customers?filter=${f}&page=${p}&search=${encodeURIComponent(s)}`),
+    getCustomerById: (id, f = 'all') => get(`/customers/${encodeURIComponent(id)}?filter=${f}`),
 
     // Missed Calls
-    getMissedCalls: () => get('/missed-calls'),
+    getMissedCalls: (f = 'all', p = 1, s = '') => get(`/missed-calls?filter=${f}&page=${p}&search=${encodeURIComponent(s)}`),
 
-    // Pending Calls
-    getPendingCalls: () => get('/pending-calls'),
+    // Disconnected Calls (Status 0)
+    getDisconnectedCalls: (f = 'all', p = 1, s = '') => get(`/pending-calls?filter=${f}&page=${p}&search=${encodeURIComponent(s)}`),
 
     // Companies
-    getCompanies: () => get('/companies'),
-    getCompanyById: (id) => get(`/companies/${encodeURIComponent(id)}`),
+    getCompanies: (f = 'all', p = 1, s = '') => get(`/companies?filter=${f}&page=${p}&search=${encodeURIComponent(s)}`),
+    getCompanyById: (id, f = 'all') => get(`/companies/${encodeURIComponent(id)}?filter=${f}`),
 };

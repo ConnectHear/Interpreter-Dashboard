@@ -10,7 +10,7 @@ import {
     ResponsiveContainer, LineChart, Line, Legend
 } from 'recharts';
 
-const FILTERS = ['all', 'daily', 'weekly', 'monthly', 'yearly'];
+import { DateFilter } from '../components/DateFilter';
 
 function CustomTooltip({ active, payload, label }) {
     if (!active || !payload?.length) return null;
@@ -41,14 +41,12 @@ export function InterpreterDetails() {
 
     const totalCalls = calls.length;
     const completedCalls = calls.filter(c => c.status === 2).length;
-    const cancelledCalls = calls.filter(c => c.status === 3).length;
     const avgDuration = calls.filter(c => c.duration).reduce((acc, c, _, arr) => acc + Number(c.duration) / arr.length, 0);
 
     const chartData = dailyStats.map(d => ({
         date: new Date(d.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
         Total: Number(d.total),
         Completed: Number(d.completed),
-        Cancelled: Number(d.cancelled),
     }));
 
     return (
@@ -89,9 +87,8 @@ export function InterpreterDetails() {
                         </div>
                         <div className="profile-stats">
                             {[
-                                { label: 'Total Calls', value: totalCalls, color: '#3b82f6' },
-                                { label: 'Completed', value: completedCalls, color: '#10b981' },
-                                { label: 'Missed', value: missed.length, color: '#ef4444' },
+                                { label: 'Completed Calls', value: totalCalls, color: '#10b981' },
+                                { label: 'Missed Notifications', value: missed.length, color: '#ef4444' },
                                 { label: 'Avg Duration', value: avgDuration ? `${Math.round(avgDuration)}s` : '—', color: '#f59e0b' },
                             ].map(s => (
                                 <div key={s.label} className="mini-stat">
@@ -115,7 +112,6 @@ export function InterpreterDetails() {
                                     <YAxis tick={{ fontSize: 10 }} />
                                     <Tooltip content={<CustomTooltip />} />
                                     <Bar dataKey="Completed" fill="#10b981" radius={[3, 3, 0, 0]} />
-                                    <Bar dataKey="Cancelled" fill="#ef4444" radius={[3, 3, 0, 0]} />
                                 </BarChart>
                             </ResponsiveContainer>
                         </div>
@@ -155,19 +151,21 @@ export function InterpreterDetails() {
                                     </button>
                                 </div>
                             </div>
-                            {tab === 'calls' && (
-                                <div className="filter-tabs">
-                                    {FILTERS.map(f => (
-                                        <button
-                                            key={f}
-                                            className={`filter-tab ${filter === f ? 'active' : ''}`}
-                                            onClick={() => setFilter(f)}
-                                        >
-                                            {f.charAt(0).toUpperCase() + f.slice(1)}
-                                        </button>
-                                    ))}
-                                </div>
-                            )}
+                            <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+                                <DateFilter value={filter} onChange={setFilter} />
+                                <button
+                                    className="btn btn-ghost btn-sm"
+                                    onClick={() => {
+                                        window.location.href = `http://localhost:3001/api/interpreters/${id}/export?filter=${filter}`;
+                                    }}
+                                    style={{ display: 'flex', alignItems: 'center', gap: 6, color: 'var(--accent-green)' }}
+                                >
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" />
+                                    </svg>
+                                    Export Excel
+                                </button>
+                            </div>
                         </div>
 
                         {tab === 'calls' ? (

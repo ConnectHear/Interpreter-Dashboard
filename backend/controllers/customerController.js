@@ -1,9 +1,26 @@
 const pool = require('../config/db');
 const { EXCLUDED_EMAILS } = require('../utils/excludeList');
+const { getDateFilter, getPagination } = require('../utils/queryHelpers');
+const cache = require('../utils/cache');
 
 // GET /api/customers
 const getAllCustomers = async (req, res) => {
     try {
+        const cacheKey = req.originalUrl;
+        const cachedData = cache.get(cacheKey);
+        if (cachedData) return res.json(cachedData);
+
+        const { filter = 'all', page = 1, limit = 20, search = '' } = req.query;
+        const { limit: l, offset, page: p } = getPagination(page, limit);
+        const msDateClause = getDateFilter(filter, 'created_at');
+        const inrDateClause = getDateFilter(filter, 'missed_call_time');
+
+        const searchLower = `%${search.toLowerCase()}%`;
+        const searchClause = search ? `AND (name LIKE ? OR email LIKE ?)` : '';
+        const searchParams = search ? [searchLower, searchLower] : [];
+
+        const [[{ total }]] = await pool.query(`SELECT COUNT(*) as total FROM customers WHERE email NOT IN (?) ${searchClause}`, [EXCLUDED_EMAILS, ...searchParams]);
+
         const [rows] = await pool.query(`
             SELECT 
                 c.*,
@@ -21,6 +38,7 @@ const getAllCustomers = async (req, res) => {
                     SUM(status = 3) AS cancelled_calls,
                     MAX(created_at) AS last_call
                 FROM monitoring_sessions
+                WHERE 1=1 ${msDateClause}
                 GROUP BY customer_id
             ) ms_stats ON c.customer_id = ms_stats.customer_id
             LEFT JOIN (
@@ -28,12 +46,26 @@ const getAllCustomers = async (req, res) => {
                     customer_id,
                     COUNT(*) AS missed_by_interpreters
                 FROM interpreter_notification_responses
+                WHERE 1=1 ${inrDateClause}
                 GROUP BY customer_id
             ) inr_stats ON c.customer_id = inr_stats.customer_id
-            WHERE c.email NOT IN (?)
+            WHERE c.email NOT IN (?) ${searchClause}
             ORDER BY total_calls DESC
-        `, [EXCLUDED_EMAILS]);
-        res.json(rows);
+            LIMIT ? OFFSET ?
+        `, [EXCLUDED_EMAILS, ...searchParams, l, offset]);
+
+        const responseData = {
+            data: rows,
+            pagination: {
+                total,
+                page: p,
+                limit: l,
+                totalPages: Math.ceil(total / l)
+            }
+        };
+
+        cache.set(cacheKey, responseData);
+        res.json(responseData);
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
@@ -42,7 +74,14 @@ const getAllCustomers = async (req, res) => {
 // GET /api/customers/:id
 const getCustomerById = async (req, res) => {
     try {
+        const cacheKey = req.originalUrl;
+        const cachedData = cache.get(cacheKey);
+        if (cachedData) return res.json(cachedData);
+
         const { id } = req.params;
+        const { filter = 'all' } = req.query;
+        const dateFilter = getDateFilter(filter, 'ms.created_at');
+        const inrDateFilter = getDateFilter(filter, 'inr.missed_call_time');
 
         const [[customer]] = await pool.query(
             `SELECT * FROM customers WHERE customer_id = ? AND email NOT IN (?)`, [id, EXCLUDED_EMAILS]
@@ -53,19 +92,21 @@ const getCustomerById = async (req, res) => {
             SELECT ms.*, i.name AS interpreter_name
             FROM monitoring_sessions ms
             LEFT JOIN interpreter i ON i.interpreter_id = ms.interpreter_id
-            WHERE ms.customer_id = ?
-    ORDER BY ms.created_at DESC
+            WHERE ms.customer_id = ? ${dateFilter}
+            ORDER BY ms.created_at DESC
         `, [id]);
 
         const [missedByInterpreters] = await pool.query(`
             SELECT inr.*, i.name AS interpreter_name
             FROM interpreter_notification_responses inr
             LEFT JOIN interpreter i ON i.interpreter_id = inr.interpreter_id
-            WHERE inr.customer_id = ?
-    ORDER BY inr.missed_call_time DESC
+            WHERE inr.customer_id = ? ${inrDateFilter}
+            ORDER BY inr.missed_call_time DESC
         `, [id]);
 
-        res.json({ customer, calls, missedByInterpreters });
+        const responseData = { customer, calls, missedByInterpreters };
+        cache.set(cacheKey, responseData);
+        res.json(responseData);
     } catch (err) {
         res.status(500).json({ error: err.message });
     }

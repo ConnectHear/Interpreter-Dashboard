@@ -1,24 +1,39 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useApi } from '../hooks/useApi';
 import { api } from '../api/api';
 import { Avatar } from '../components/Avatar';
+import { Pagination } from '../components/Pagination';
 import { formatDateTime, timeAgo } from '../utils/helpers';
+import { DateFilter } from '../components/DateFilter';
 
 export function MissedCalls() {
-    const { data, loading, error } = useApi(api.getMissedCalls);
+    const [dateFilter, setDateFilter] = useState('all');
+    const [page, setPage] = useState(1);
     const [search, setSearch] = useState('');
-    const navigate = useNavigate();
+    const [debouncedSearch, setDebouncedSearch] = useState('');
 
-    const filtered = (data || []).filter(m =>
-        (m.interpreter_name || m.interpreter_name_detail || '').toLowerCase().includes(search.toLowerCase()) ||
-        (m.user_name || m.customer_name_detail || '').toLowerCase().includes(search.toLowerCase())
+    useEffect(() => {
+        const timer = setTimeout(() => setDebouncedSearch(search), 500);
+        return () => clearTimeout(timer);
+    }, [search]);
+
+    const { data, loading, error } = useApi(
+        () => api.getMissedCalls(dateFilter, page, debouncedSearch),
+        [dateFilter, page, debouncedSearch]
     );
 
-    // Stats
-    const total = (data || []).length;
-    const uniqueInterpreters = new Set((data || []).map(m => m.interpreter_id)).size;
-    const uniqueCustomers = new Set((data || []).map(m => m.customer_id)).size;
+    const navigate = useNavigate();
+
+    const missedCalls = data?.data || [];
+    const pagination = data?.pagination || {};
+
+    // Stats (Since we only have paginated data here, we use the total from pagination for basic count)
+    const totalCount = pagination.total || 0;
+    // For unique counts, if we wanted real ones we'd need another backend stat or fetch all.
+    // For now I'll just show the total from pagination.
+    const uniqueInterpreters = new Set(missedCalls.map(m => m.interpreter_id)).size;
+    const uniqueCustomers = new Set(missedCalls.map(m => m.customer_id)).size;
 
     return (
         <div className="page-content fade-in">
@@ -26,16 +41,17 @@ export function MissedCalls() {
                 <div>
                     <div className="page-title">Missed Calls</div>
                     <div className="page-description">
-                        {data ? `${total} missed call records · ${uniqueInterpreters} interpreters · ${uniqueCustomers} customers` : 'Loading...'}
+                        Analysis of missed call events for the selected period
                     </div>
                 </div>
+                <DateFilter value={dateFilter} onChange={(val) => { setDateFilter(val); setPage(1); }} />
             </div>
 
             {/* Stats */}
             {data && (
                 <div className="grid-3 section">
                     {[
-                        { label: 'Total Missed', value: total, color: '#ef4444', bg: 'rgba(239,68,68,0.07)', border: 'rgba(239,68,68,0.2)' },
+                        { label: 'Total Missed', value: totalCount, color: '#ef4444', bg: 'rgba(239,68,68,0.07)', border: 'rgba(239,68,68,0.2)' },
                         { label: 'Interpreters Involved', value: uniqueInterpreters, color: '#3b82f6', bg: 'rgba(59,130,246,0.07)', border: 'rgba(59,130,246,0.2)' },
                         { label: 'Customers Affected', value: uniqueCustomers, color: '#f59e0b', bg: 'rgba(245,158,11,0.07)', border: 'rgba(245,158,11,0.2)' },
                     ].map(s => (
@@ -61,7 +77,7 @@ export function MissedCalls() {
                         <input
                             placeholder="Search by interpreter or customer…"
                             value={search}
-                            onChange={e => setSearch(e.target.value)}
+                            onChange={e => { setSearch(e.target.value); setPage(1); }}
                         />
                     </div>
                 </div>
@@ -73,7 +89,7 @@ export function MissedCalls() {
                         <p style={{ color: 'var(--accent-red)' }}>Error: {error}</p>
                         <span>Make sure the backend is running on port 3001</span>
                     </div>
-                ) : !filtered.length ? (
+                ) : !missedCalls.length ? (
                     <div className="empty-state">
                         <p>No missed calls found</p>
                     </div>
@@ -91,7 +107,7 @@ export function MissedCalls() {
                                 </tr>
                             </thead>
                             <tbody>
-                                {filtered.map((m, idx) => {
+                                {missedCalls.map((m, idx) => {
                                     const interpName = m.interpreter_name_detail || m.interpreter_name || '—';
                                     const custName = m.customer_name_detail || m.user_name || '—';
                                     return (
@@ -152,6 +168,14 @@ export function MissedCalls() {
                         </table>
                     </div>
                 )}
+
+                <Pagination
+                    pagination={pagination}
+                    onPageChange={(p) => {
+                        setPage(p);
+                        window.scrollTo({ top: 0, behavior: 'smooth' });
+                    }}
+                />
             </div>
         </div>
     );

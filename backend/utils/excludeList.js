@@ -14,4 +14,4 @@ const EXCLUDED_EMAILS = [
     'saqibrashid717@gmail.com'
 ];
 
-module.exports = { EXCLUDED_EMAILS };
+module.exports = { EXCLUDED_EMAILS }; 

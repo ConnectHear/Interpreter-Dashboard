@@ -1,39 +1,51 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useApi } from '../hooks/useApi';
 import { api } from '../api/api';
 import { Avatar } from '../components/Avatar';
+import { DateFilter } from '../components/DateFilter';
+import { Pagination } from '../components/Pagination';
 import { formatDateTime, timeAgo } from '../utils/helpers';
 
 export function PendingCalls() {
-    const { data, loading, error } = useApi(api.getPendingCalls);
+    const [dateFilter, setDateFilter] = useState('all');
+    const [page, setPage] = useState(1);
     const [search, setSearch] = useState('');
+    const [debouncedSearch, setDebouncedSearch] = useState('');
+
+    useEffect(() => {
+        const timer = setTimeout(() => setDebouncedSearch(search), 500);
+        return () => clearTimeout(timer);
+    }, [search]);
+
+    const { data, loading, error } = useApi(
+        () => api.getDisconnectedCalls(dateFilter, page, debouncedSearch),
+        [dateFilter, page, debouncedSearch]
+    );
+
     const navigate = useNavigate();
 
-    const allPending = data?.allPending || [];
-    const frequentUsers = data?.frequentPendingUsers || [];
-
-    const filtered = allPending.filter(m =>
-        (m.customer_name || '').toLowerCase().includes(search.toLowerCase()) ||
-        (m.customer_email || '').toLowerCase().includes(search.toLowerCase())
-    );
+    const allDisconnected = data?.allDisconnected || [];
+    const frequentUsers = data?.frequentDisconnectedUsers || [];
+    const pagination = data?.pagination || {};
 
     return (
         <div className="page-content fade-in">
             <div className="page-header">
                 <div>
-                    <div className="page-title">Pending Calls</div>
+                    <div className="page-title">Disconnected Calls</div>
                     <div className="page-description">
-                        Active and inactive call requests from the last 30 days waiting for an interpreter
+                        Call requests that were disconnected or timed out
                     </div>
                 </div>
+                <DateFilter value={dateFilter} onChange={(val) => { setDateFilter(val); setPage(1); }} />
             </div>
 
             {/* Stats Row */}
             <div className="grid-3 section">
                 <div className="card" style={{ borderLeft: '4px solid var(--accent-orange)' }}>
-                    <div style={{ fontSize: 12, color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase' }}>Current Pending</div>
-                    <div style={{ fontSize: 32, fontWeight: 800, color: 'var(--text-primary)', marginTop: 4 }}>{allPending.length}</div>
+                    <div style={{ fontSize: 12, color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase' }}>Current Disconnected</div>
+                    <div style={{ fontSize: 32, fontWeight: 800, color: 'var(--text-primary)', marginTop: 4 }}>{pagination.total || 0}</div>
                 </div>
                 <div className="card" style={{ borderLeft: '4px solid var(--accent-blue)' }}>
                     <div style={{ fontSize: 12, color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase' }}>Waiting Customers</div>
@@ -46,10 +58,10 @@ export function PendingCalls() {
             </div>
 
             <div className="grid-2-1 section">
-                {/* All Pending Table */}
+                {/* All Disconnected Table */}
                 <div className="card">
                     <div className="card-header">
-                        <div className="card-title">Recent Pending Requests</div>
+                        <div className="card-title">Recent Disconnected Requests</div>
                         <div className="search-bar" style={{ maxWidth: 250 }}>
                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" strokeWidth="2">
                                 <circle cx="11" cy="11" r="8" /><path d="m21 21-4.35-4.35" />
@@ -57,16 +69,16 @@ export function PendingCalls() {
                             <input
                                 placeholder="Search customer…"
                                 value={search}
-                                onChange={e => setSearch(e.target.value)}
+                                onChange={e => { setSearch(e.target.value); setPage(1); }}
                             />
                         </div>
                     </div>
 
                     {loading ? (
                         <div className="loading-container"><div className="spinner" /></div>
-                    ) : !filtered.length ? (
+                    ) : !allDisconnected.length ? (
                         <div className="empty-state">
-                            <p>No pending calls found</p>
+                            <p>No disconnected calls found</p>
                         </div>
                     ) : (
                         <div className="table-wrapper">
@@ -80,7 +92,7 @@ export function PendingCalls() {
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {filtered.map(m => (
+                                    {allDisconnected.map(m => (
                                         <tr key={m.monitoring_id}>
                                             <td>
                                                 <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
@@ -111,12 +123,20 @@ export function PendingCalls() {
                             </table>
                         </div>
                     )}
+
+                    <Pagination
+                        pagination={pagination}
+                        onPageChange={(p) => {
+                            setPage(p);
+                            window.scrollTo({ top: 0, behavior: 'smooth' });
+                        }}
+                    />
                 </div>
 
                 {/* Frequent Users */}
                 <div className="card">
                     <div className="card-header">
-                        <div className="card-title">Frequent Pending Users</div>
+                        <div className="card-title">Frequent Disconnected Users</div>
                     </div>
                     {loading ? (
                         <div className="loading-container"><div className="spinner" /></div>
@@ -135,7 +155,7 @@ export function PendingCalls() {
                                     </div>
                                     <div style={{ textAlign: 'right' }}>
                                         <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--accent-orange)' }}>{user.pending_count}</div>
-                                        <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-muted)' }}>REQUESTS</div>
+                                        <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-muted)' }}>DISCONNECTED</div>
                                     </div>
                                 </div>
                             ))}

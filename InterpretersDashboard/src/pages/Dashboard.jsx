@@ -4,6 +4,8 @@ import { api } from '../api/api';
 import { formatDateTime, timeAgo } from '../utils/helpers';
 import { StatusBadge, ChatBadge } from '../components/StatusBadge';
 import { Avatar } from '../components/Avatar';
+import { DateFilter } from '../components/DateFilter';
+import { useState } from 'react';
 import {
     AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid,
     Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend
@@ -47,9 +49,11 @@ function CustomTooltip({ active, payload, label }) {
 }
 
 export function Dashboard() {
-    const { data: stats, loading: l1 } = useApi(api.getDashboardStats);
+    const [dateFilter, setDateFilter] = useState('today');
+
+    const { data: stats, loading: l1 } = useApi(() => api.getDashboardStats(dateFilter), [dateFilter]);
     const { data: trend, loading: l2 } = useApi(api.getCallsTrend);
-    const { data: recent, loading: l3 } = useApi(api.getRecentSessions);
+    const { data: recent, loading: l3 } = useApi(() => api.getRecentSessions(dateFilter), [dateFilter]);
     const { data: interpStatus, loading: l4 } = useApi(api.getInterpreterStatus);
     const navigate = useNavigate();
 
@@ -59,6 +63,7 @@ export function Dashboard() {
         Completed: Number(r.completed),
         Missed: Number(r.missed),
         Cancelled: Number(r.cancelled),
+        Disconnected: Number(r.disconnected),
     }));
 
     const pieData = interpStatus || [];
@@ -69,9 +74,10 @@ export function Dashboard() {
             <div className="section">
                 <div className="page-header">
                     <div>
-                        <div className="page-title">Analytics Hub</div>
-                        <div className="page-description">Real-time performance metrics and live statistics</div>
+                        <div className="page-title">Executive Overview</div>
+                        <div className="page-description">Platform performance and activity metrics</div>
                     </div>
+                    <DateFilter value={dateFilter} onChange={setDateFilter} />
                 </div>
 
                 {l1 ? <div className="loading-container"><div className="spinner" /></div> : (
@@ -106,36 +112,36 @@ export function Dashboard() {
                         />
                         <StatCard
                             color="blue"
-                            label="Calls Today"
+                            label="Total Calls"
                             value={stats?.calls_today}
                             icon={<IconActivity />}
                         />
                         <StatCard
                             color="green"
-                            label="Completed Today"
+                            label="Completed Calls"
                             value={stats?.completed_today}
                             icon={<IconCheck />}
                         />
                         <StatCard
                             color="red"
-                            label="Missed Today"
+                            label="Missed Calls"
                             value={stats?.missed_today}
                             icon={<IconPhoneMissed />}
                             onClick={() => navigate('/missed-calls')}
                         />
                         <StatCard
                             color="pink"
-                            label="Cancelled Today"
+                            label="Cancelled Calls"
                             value={stats?.cancelled_today}
                             icon={<IconXCircle />}
                             onClick={() => navigate('/missed-calls')}
                         />
                         <StatCard
                             color="orange"
-                            label="Pending Today"
-                            value={stats?.pending_today}
+                            label="Disconnected Calls"
+                            value={stats?.disconnected_today}
                             icon={<IconClock />}
-                            onClick={() => navigate('/pending-calls')}
+                            onClick={() => navigate('/disconnected-calls')}
                         />
                     </div>
                 )}
@@ -172,6 +178,7 @@ export function Dashboard() {
                                 <Area type="monotone" dataKey="Completed" stroke="#10b981" fill="url(#colCompleted)" strokeWidth={3} />
                                 <Area type="monotone" dataKey="Missed" stroke="#ef4444" fill="none" strokeWidth={2} />
                                 <Area type="monotone" dataKey="Cancelled" stroke="#ec4899" fill="none" strokeWidth={2} strokeDasharray="6 4" />
+                                <Area type="monotone" dataKey="Disconnected" stroke="#94a3b8" fill="none" strokeWidth={2} dotted />
                             </AreaChart>
                         </ResponsiveContainer>
                     )}
@@ -224,7 +231,7 @@ export function Dashboard() {
                 <div className="card-header">
                     <div>
                         <div className="card-title">Recent Sessions</div>
-                        <div className="card-subtitle">Latest 10 call sessions</div>
+                        <div className="card-subtitle">Latest call sessions</div>
                     </div>
                 </div>
                 {l3 ? (

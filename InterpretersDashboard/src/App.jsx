@@ -26,7 +26,7 @@ function App() {
             <Route path="/customers" element={<Customers />} />
             <Route path="/customers/:id" element={<CustomerDetails />} />
             <Route path="/missed-calls" element={<MissedCalls />} />
-            <Route path="/pending-calls" element={<PendingCalls />} />
+            <Route path="/disconnected-calls" element={<PendingCalls />} />
             <Route path="/companies" element={<Companies />} />
             <Route path="/companies/:id" element={<CompanyDetails />} />
           </Routes>

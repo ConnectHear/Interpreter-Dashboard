@@ -1,31 +1,39 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useApi } from '../hooks/useApi';
 import { api } from '../api/api';
 import { Avatar } from '../components/Avatar';
+import { Pagination } from '../components/Pagination';
 import { timeAgo, formatDate } from '../utils/helpers';
+import { DateFilter } from '../components/DateFilter';
 
 export function Customers() {
-    const { data, loading, error } = useApi(api.getCustomers);
+    const [dateFilter, setDateFilter] = useState('all');
+    const [page, setPage] = useState(1);
     const [search, setSearch] = useState('');
+    const [debouncedSearch, setDebouncedSearch] = useState('');
+
+    useEffect(() => {
+        const timer = setTimeout(() => setDebouncedSearch(search), 500);
+        return () => clearTimeout(timer);
+    }, [search]);
+
+    const { data, loading, error } = useApi(
+        () => api.getCustomers(dateFilter, page, debouncedSearch),
+        [dateFilter, page, debouncedSearch]
+    );
+
     const [tab, setTab] = useState('active');
     const navigate = useNavigate();
 
-    // Separate active users from neglected users
-    // Active = total_calls >= 3
-    // Neglected = high missed_by_interpreters relative to total_calls
-    const filtered = (data || []).filter(c => {
-        const matchSearch =
-            (c.name || '').toLowerCase().includes(search.toLowerCase()) ||
-            (c.email || '').toLowerCase().includes(search.toLowerCase());
-        return matchSearch;
-    });
+    const customers = data?.data || [];
+    const pagination = data?.pagination || {};
 
-    const activeUsers = filtered
+    const activeUsers = customers
         .filter(c => Number(c.total_calls) >= 2)
         .sort((a, b) => Number(b.total_calls) - Number(a.total_calls));
 
-    const neglectedUsers = filtered
+    const neglectedUsers = customers
         .filter(c => {
             const total = Number(c.total_calls) || 0;
             const missed = Number(c.missed_by_interpreters) || 0;
@@ -33,7 +41,7 @@ export function Customers() {
         })
         .sort((a, b) => Number(b.missed_by_interpreters) - Number(a.missed_by_interpreters));
 
-    const displayed = tab === 'active' ? activeUsers : tab === 'neglected' ? neglectedUsers : filtered;
+    const displayed = tab === 'active' ? activeUsers : tab === 'neglected' ? neglectedUsers : customers;
 
     return (
         <div className="page-content fade-in">
@@ -41,9 +49,10 @@ export function Customers() {
                 <div>
                     <div className="page-title">Customers</div>
                     <div className="page-description">
-                        {data ? `${data.length} total customers · ${activeUsers.length} active · ${neglectedUsers.length} neglected` : 'Loading...'}
+                        Behavior and engagement analysis for the selected period
                     </div>
                 </div>
+                <DateFilter value={dateFilter} onChange={(val) => { setDateFilter(val); setPage(1); }} />
             </div>
 
             {/* Alert cards */}
@@ -51,7 +60,7 @@ export function Customers() {
                 <div className="grid-3 section">
                     <div className="card" style={{ borderColor: 'rgba(59,130,246,0.3)', background: 'rgba(59,130,246,0.05)' }}>
                         <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
-                            <div style={{ fontSize: 28, fontWeight: 800, color: '#60a5fa' }}>{data.length}</div>
+                            <div style={{ fontSize: 28, fontWeight: 800, color: '#60a5fa' }}>{pagination.total || 0}</div>
                             <div>
                                 <div style={{ fontWeight: 600, color: 'var(--text-primary)' }}>Total Customers</div>
                                 <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>All registered users</div>
@@ -89,18 +98,18 @@ export function Customers() {
                         <input
                             placeholder="Search by name or email…"
                             value={search}
-                            onChange={e => setSearch(e.target.value)}
+                            onChange={e => { setSearch(e.target.value); setPage(1); }}
                         />
                     </div>
 
                     <div className="filter-tabs">
-                        <button className={`filter-tab ${tab === 'all' ? 'active' : ''}`} onClick={() => setTab('all')}>
-                            All ({filtered.length})
+                        <button className={`filter-tab ${tab === 'all' ? 'active' : ''}`} onClick={() => { setTab('all'); setPage(1); }}>
+                            All ({customers.length})
                         </button>
-                        <button className={`filter-tab ${tab === 'active' ? 'active' : ''}`} onClick={() => setTab('active')}>
+                        <button className={`filter-tab ${tab === 'active' ? 'active' : ''}`} onClick={() => { setTab('active'); setPage(1); }}>
                             🔥 Frequent ({activeUsers.length})
                         </button>
-                        <button className={`filter-tab ${tab === 'neglected' ? 'active' : ''}`} onClick={() => setTab('neglected')}>
+                        <button className={`filter-tab ${tab === 'neglected' ? 'active' : ''}`} onClick={() => { setTab('neglected'); setPage(1); }}>
                             ⚠️ Neglected ({neglectedUsers.length})
                         </button>
                     </div>
@@ -214,6 +223,14 @@ export function Customers() {
                         </table>
                     </div>
                 )}
+
+                <Pagination
+                    pagination={pagination}
+                    onPageChange={(p) => {
+                        setPage(p);
+                        window.scrollTo({ top: 0, behavior: 'smooth' });
+                    }}
+                />
             </div>
         </div>
     );
