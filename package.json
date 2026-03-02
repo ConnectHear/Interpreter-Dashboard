@@ -1,0 +1,9 @@
+{
+    "name": "interpreter-dashboard",
+    "version": "1.0.0",
+    "private": true,
+    "scripts": {
+        "build": "cd InterpretersDashboard && npm run build",
+        "install:all": "cd backend && npm install && cd ../InterpretersDashboard && npm install"
+    }
+}

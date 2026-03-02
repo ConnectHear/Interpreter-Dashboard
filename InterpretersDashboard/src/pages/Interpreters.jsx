@@ -1,29 +1,43 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useApi } from '../hooks/useApi';
 import { api } from '../api/api';
 import { Avatar } from '../components/Avatar';
 import { OnlineStatus } from '../components/StatusBadge';
+import { Pagination } from '../components/Pagination';
 import { formatDateTime, timeAgo } from '../utils/helpers';
 
 export function Interpreters() {
-    const { data, loading, error } = useApi(api.getInterpreters);
+
+    const [page, setPage] = useState(1);
     const [search, setSearch] = useState('');
+    const [debouncedSearch, setDebouncedSearch] = useState('');
+
+    useEffect(() => {
+        const timer = setTimeout(() => setDebouncedSearch(search), 500);
+        return () => clearTimeout(timer);
+    }, [search]);
+
+    const { data, loading, error } = useApi(
+        () => api.getInterpreters('all', page, debouncedSearch),
+        [page, debouncedSearch]
+    );
+
     const [filterStatus, setFilterStatus] = useState('all');
     const [sortBy, setSortBy] = useState('name');
     const navigate = useNavigate();
 
-    const filtered = (data || [])
+    const interpreters = data?.data || [];
+    const pagination = data?.pagination || {};
+
+    const filtered = interpreters
         .filter(i => {
-            const matchSearch =
-                (i.name || '').toLowerCase().includes(search.toLowerCase()) ||
-                (i.email || '').toLowerCase().includes(search.toLowerCase());
             const matchStatus =
                 filterStatus === 'all' ||
                 (filterStatus === 'online' && i.online_status && !i.on_call_status) ||
                 (filterStatus === 'oncall' && i.on_call_status) ||
                 (filterStatus === 'offline' && !i.online_status);
-            return matchSearch && matchStatus;
+            return matchStatus;
         })
         .sort((a, b) => {
             if (sortBy === 'name') return (a.name || '').localeCompare(b.name || '');
@@ -33,9 +47,9 @@ export function Interpreters() {
             return 0;
         });
 
-    const online = (data || []).filter(i => i.online_status && !i.on_call_status).length;
-    const onCall = (data || []).filter(i => i.on_call_status).length;
-    const offline = (data || []).filter(i => !i.online_status).length;
+    const online = interpreters.filter(i => i.online_status && !i.on_call_status).length;
+    const onCall = interpreters.filter(i => i.on_call_status).length;
+    const offline = interpreters.filter(i => !i.online_status).length;
 
     return (
         <div className="page-content fade-in">
@@ -43,7 +57,7 @@ export function Interpreters() {
                 <div>
                     <div className="page-title">Interpreters</div>
                     <div className="page-description">
-                        {data ? `${data.length} interpreters · ${online} online · ${onCall} on call · ${offline} offline` : 'Loading...'}
+                        Call performance statistics
                     </div>
                 </div>
             </div>
@@ -52,7 +66,7 @@ export function Interpreters() {
             {data && (
                 <div className="grid-4 section">
                     {[
-                        { label: 'Total', value: data.length, color: '#3b82f6' },
+                        { label: 'Total', value: pagination.total || 0, color: '#3b82f6' },
                         { label: 'Online', value: online, color: '#10b981' },
                         { label: 'On Call', value: onCall, color: '#f59e0b' },
                         { label: 'Offline', value: offline, color: '#4b5a72' },
@@ -83,7 +97,7 @@ export function Interpreters() {
                         <input
                             placeholder="Search by name or email…"
                             value={search}
-                            onChange={e => setSearch(e.target.value)}
+                            onChange={e => { setSearch(e.target.value); setPage(1); }}
                         />
                     </div>
 
@@ -93,7 +107,7 @@ export function Interpreters() {
                             <button
                                 key={s}
                                 className={`filter-tab ${filterStatus === s ? 'active' : ''}`}
-                                onClick={() => setFilterStatus(s)}
+                                onClick={() => { setFilterStatus(s); setPage(1); }}
                             >
                                 {s === 'all' ? 'All' : s === 'oncall' ? 'On Call' : s.charAt(0).toUpperCase() + s.slice(1)}
                             </button>
@@ -129,7 +143,6 @@ export function Interpreters() {
                                     <th>Interpreter</th>
                                     <th>Status</th>
                                     <th>Total Calls</th>
-                                    <th>Completed</th>
                                     <th>Missed</th>
                                     <th>Last Call</th>
                                     <th>Joined</th>
@@ -157,9 +170,6 @@ export function Interpreters() {
                                             <span style={{ fontWeight: 700, color: 'var(--text-primary)' }}>{i.total_calls || 0}</span>
                                         </td>
                                         <td>
-                                            <span style={{ color: '#34d399', fontWeight: 600 }}>{i.accepted_calls || 0}</span>
-                                        </td>
-                                        <td>
                                             <span style={{ color: i.missed_calls > 0 ? '#f87171' : 'var(--text-muted)', fontWeight: 600 }}>
                                                 {i.missed_calls || 0}
                                             </span>
@@ -184,6 +194,14 @@ export function Interpreters() {
                         </table>
                     </div>
                 )}
+
+                <Pagination
+                    pagination={pagination}
+                    onPageChange={(p) => {
+                        setPage(p);
+                        window.scrollTo({ top: 0, behavior: 'smooth' });
+                    }}
+                />
             </div>
         </div>
     );

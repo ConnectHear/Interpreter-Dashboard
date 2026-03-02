@@ -5,6 +5,7 @@ import { api } from '../api/api';
 import { Avatar } from '../components/Avatar';
 import { StatusBadge, ChatBadge } from '../components/StatusBadge';
 import { formatDateTime, timeAgo } from '../utils/helpers';
+import { DateFilter } from '../components/DateFilter';
 import {
     BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer
 } from 'recharts';
@@ -28,7 +29,8 @@ export function CompanyDetails() {
     const navigate = useNavigate();
     const [tab, setTab] = useState('users');
     const [userSearch, setUserSearch] = useState('');
-    const { data, loading, error } = useApi(() => api.getCompanyById(id), [id]);
+    const [dateFilter, setDateFilter] = useState('all');
+    const { data, loading, error } = useApi(() => api.getCompanyById(id, dateFilter), [id, dateFilter]);
 
     const { company, users = [], calls = [], dailyStats = [] } = data || {};
 
@@ -123,12 +125,27 @@ export function CompanyDetails() {
                     {/* ── Tabs: Users / Call History ──────────────── */}
                     <div className="card section">
                         <div className="card-header">
-                            <div className="filter-tabs">
-                                <button className={`filter-tab ${tab === 'users' ? 'active' : ''}`} onClick={() => setTab('users')}>
-                                    👥 Users ({users.length})
-                                </button>
-                                <button className={`filter-tab ${tab === 'calls' ? 'active' : ''}`} onClick={() => setTab('calls')}>
-                                    📞 All Call History ({calls.length})
+                            <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+                                <div className="filter-tabs">
+                                    <button className={`filter-tab ${tab === 'users' ? 'active' : ''}`} onClick={() => setTab('users')}>
+                                        👥 Users ({users.length})
+                                    </button>
+                                    <button className={`filter-tab ${tab === 'calls' ? 'active' : ''}`} onClick={() => setTab('calls')}>
+                                        📞 All Call History ({calls.length})
+                                    </button>
+                                </div>
+                                <DateFilter value={dateFilter} onChange={setDateFilter} />
+                                <button
+                                    className="btn btn-ghost btn-sm"
+                                    onClick={() => {
+                                        window.location.href = `/api/companies/${id}/export?filter=${dateFilter}`;
+                                    }}
+                                    style={{ display: 'flex', alignItems: 'center', gap: 6, color: 'var(--accent-green)' }}
+                                >
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" />
+                                    </svg>
+                                    Export Excel
                                 </button>
                             </div>
                         </div>

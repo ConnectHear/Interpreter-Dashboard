@@ -6,10 +6,7 @@ export function StatusBadge({ status, notificationCount }) {
 
     if (status === 3 && notificationCount > 0) {
         label = 'Missed';
-        badgeClass = 'badge-red'; // Keep it red for missed
-    } else if (status === 3) {
-        label = 'Cancelled';
-        badgeClass = 'badge-gray'; // Use gray for cancelled (user just closed)
+        badgeClass = 'badge-red';
     }
 
     return (

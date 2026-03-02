@@ -1,24 +1,32 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useApi } from '../hooks/useApi';
 import { api } from '../api/api';
 import { Avatar } from '../components/Avatar';
+import { Pagination } from '../components/Pagination';
 import { timeAgo } from '../utils/helpers';
 
 export function Companies() {
-    const { data, loading, error } = useApi(api.getCompanies);
-    const [search, setSearch] = useState('');
-    const navigate = useNavigate();
 
-    const filtered = (data || []).filter(c =>
-        (c.name || '').toLowerCase().includes(search.toLowerCase()) ||
-        (c.email || '').toLowerCase().includes(search.toLowerCase()) ||
-        (c.company_code || '').toLowerCase().includes(search.toLowerCase())
+    const [page, setPage] = useState(1);
+    const [search, setSearch] = useState('');
+    const [debouncedSearch, setDebouncedSearch] = useState('');
+
+    useEffect(() => {
+        const timer = setTimeout(() => setDebouncedSearch(search), 500);
+        return () => clearTimeout(timer);
+    }, [search]);
+
+    const { data, loading, error } = useApi(
+        () => api.getCompanies('all', page, debouncedSearch),
+        [page, debouncedSearch]
     );
 
-    const totalCalls = (data || []).reduce((s, c) => s + Number(c.total_calls || 0), 0);
-    const totalCompleted = (data || []).reduce((s, c) => s + Number(c.completed_calls || 0), 0);
-    const totalUsers = (data || []).reduce((s, c) => s + Number(c.total_users || 0), 0);
+    const navigate = useNavigate();
+
+    const companies = data?.data || [];
+    const pagination = data?.pagination || {};
+    const stats = data?.stats || {};
 
     return (
         <div className="page-content fade-in">
@@ -26,7 +34,7 @@ export function Companies() {
                 <div>
                     <div className="page-title">Companies</div>
                     <div className="page-description">
-                        {data ? `${data.length} companies · ${totalUsers} users · ${totalCalls} total calls` : 'Loading...'}
+                        Organisational performance and call analytics
                     </div>
                 </div>
             </div>
@@ -36,7 +44,7 @@ export function Companies() {
                 <div className="grid-3 section">
                     <div className="card" style={{ borderColor: 'rgba(139,92,246,0.3)', background: 'rgba(139,92,246,0.05)' }}>
                         <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
-                            <div style={{ fontSize: 28, fontWeight: 800, color: '#a78bfa' }}>{data.length}</div>
+                            <div style={{ fontSize: 28, fontWeight: 800, color: '#a78bfa' }}>{pagination.total || 0}</div>
                             <div>
                                 <div style={{ fontWeight: 600, color: 'var(--text-primary)' }}>Total Companies</div>
                                 <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>Registered organisations</div>
@@ -45,7 +53,7 @@ export function Companies() {
                     </div>
                     <div className="card" style={{ borderColor: 'rgba(59,130,246,0.3)', background: 'rgba(59,130,246,0.05)' }}>
                         <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
-                            <div style={{ fontSize: 28, fontWeight: 800, color: '#60a5fa' }}>{totalUsers}</div>
+                            <div style={{ fontSize: 28, fontWeight: 800, color: '#60a5fa' }}>{stats.total_users || 0}</div>
                             <div>
                                 <div style={{ fontWeight: 600, color: 'var(--text-primary)' }}>Company Users</div>
                                 <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>Users linked to companies</div>
@@ -54,7 +62,7 @@ export function Companies() {
                     </div>
                     <div className="card" style={{ borderColor: 'rgba(16,185,129,0.3)', background: 'rgba(16,185,129,0.05)' }}>
                         <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
-                            <div style={{ fontSize: 28, fontWeight: 800, color: '#34d399' }}>{totalCompleted}</div>
+                            <div style={{ fontSize: 28, fontWeight: 800, color: '#34d399' }}>{stats.total_completed || 0}</div>
                             <div>
                                 <div style={{ fontWeight: 600, color: 'var(--text-primary)' }}>Completed Calls</div>
                                 <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>Across all companies</div>
@@ -73,7 +81,7 @@ export function Companies() {
                     <input
                         placeholder="Search by name, email or code…"
                         value={search}
-                        onChange={e => setSearch(e.target.value)}
+                        onChange={e => { setSearch(e.target.value); setPage(1); }}
                     />
                 </div>
 
@@ -84,7 +92,7 @@ export function Companies() {
                         <p style={{ color: 'var(--accent-red)' }}>Error: {error}</p>
                         <span>Make sure the backend is running on port 3001</span>
                     </div>
-                ) : !filtered.length ? (
+                ) : !companies.length ? (
                     <div className="empty-state"><p>No companies found</p></div>
                 ) : (
                     <div className="table-wrapper">
@@ -103,7 +111,7 @@ export function Companies() {
                                 </tr>
                             </thead>
                             <tbody>
-                                {filtered.map(c => {
+                                {companies.map(c => {
                                     const total = Number(c.total_calls) || 0;
                                     const completed = Number(c.completed_calls) || 0;
                                     const rate = total > 0 ? Math.round((completed / total) * 100) : 0;
@@ -157,6 +165,14 @@ export function Companies() {
                         </table>
                     </div>
                 )}
+
+                <Pagination
+                    pagination={pagination}
+                    onPageChange={(p) => {
+                        setPage(p);
+                        window.scrollTo({ top: 0, behavior: 'smooth' });
+                    }}
+                />
             </div>
         </div>
     );

@@ -4,6 +4,7 @@ import { api } from '../api/api';
 import { Avatar } from '../components/Avatar';
 import { StatusBadge, ChatBadge } from '../components/StatusBadge';
 import { formatDateTime, timeAgo } from '../utils/helpers';
+import { DateFilter } from '../components/DateFilter';
 import { useState } from 'react';
 import {
     BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
@@ -28,7 +29,8 @@ export function CustomerDetails() {
     const { id } = useParams();
     const navigate = useNavigate();
     const [tab, setTab] = useState('calls');
-    const { data, loading, error } = useApi(() => api.getCustomerById(id), [id]);
+    const [dateFilter, setDateFilter] = useState('all');
+    const { data, loading, error } = useApi(() => api.getCustomerById(id, dateFilter), [id, dateFilter]);
 
     const { customer: cust, calls = [], missedByInterpreters = [] } = data || {};
 
@@ -179,13 +181,16 @@ export function CustomerDetails() {
                     {/* ── History Tabs ────────────────────────────── */}
                     <div className="card section">
                         <div className="card-header">
-                            <div className="filter-tabs">
-                                <button className={`filter-tab ${tab === 'calls' ? 'active' : ''}`} onClick={() => setTab('calls')}>
-                                    Call History ({calls.length})
-                                </button>
-                                <button className={`filter-tab ${tab === 'missed' ? 'active' : ''}`} onClick={() => setTab('missed')}>
-                                    Missed by Interpreters ({missedByInterpreters.length})
-                                </button>
+                            <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+                                <div className="filter-tabs">
+                                    <button className={`filter-tab ${tab === 'calls' ? 'active' : ''}`} onClick={() => setTab('calls')}>
+                                        Call History ({calls.length})
+                                    </button>
+                                    <button className={`filter-tab ${tab === 'missed' ? 'active' : ''}`} onClick={() => setTab('missed')}>
+                                        Missed by Interpreters ({missedByInterpreters.length})
+                                    </button>
+                                </div>
+                                <DateFilter value={dateFilter} onChange={setDateFilter} />
                             </div>
                         </div>
 
