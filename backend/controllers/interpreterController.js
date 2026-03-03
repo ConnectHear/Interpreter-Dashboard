@@ -180,7 +180,7 @@ const exportInterpreterCalls = async (req, res) => {
         // Data Rows
         completedCallsData.forEach(c => {
             sheet1.addRow([
-                new Date(c.created_at).toLocaleString(),
+                new Date(c.created_at).toLocaleString('en-US', { timeZone: 'Asia/Karachi' }),
                 c.customer_name || 'N/A',
                 c.is_chat ? 'Chat' : 'Voice',
                 c.duration || 0
@@ -212,7 +212,7 @@ const exportInterpreterCalls = async (req, res) => {
         // Data Rows
         missed.forEach(m => {
             sheet2.addRow([
-                new Date(m.missed_call_time).toLocaleString(),
+                new Date(m.missed_call_time).toLocaleString('en-US', { timeZone: 'Asia/Karachi' }),
                 m.customer_name || m.user_name || 'Unknown'
             ]);
         });

@@ -42,7 +42,7 @@ export function CompanyDetails() {
     );
 
     const chartData = dailyStats.map(d => ({
-        date: new Date(d.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+        date: new Date(d.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'Asia/Karachi' }),
         Completed: Number(d.completed),
         Cancelled: Number(d.cancelled),
     }));

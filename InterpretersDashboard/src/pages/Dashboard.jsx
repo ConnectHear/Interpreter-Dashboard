@@ -58,7 +58,7 @@ export function Dashboard() {
     const navigate = useNavigate();
 
     const trendData = (trend || []).map(r => ({
-        date: new Date(r.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+        date: new Date(r.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'Asia/Karachi' }),
         Total: Number(r.total),
         Completed: Number(r.completed),
         Missed: Number(r.missed),

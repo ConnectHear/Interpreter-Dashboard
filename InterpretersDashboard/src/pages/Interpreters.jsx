@@ -178,7 +178,7 @@ export function Interpreters() {
                                             {i.last_call_time ? timeAgo(i.last_call_time) : '—'}
                                         </td>
                                         <td style={{ fontSize: 12, color: 'var(--text-muted)' }}>
-                                            {i.created_at ? new Date(i.created_at).toLocaleDateString('en-US', { month: 'short', year: 'numeric' }) : '—'}
+                                            {i.created_at ? new Date(i.created_at).toLocaleDateString('en-US', { month: 'short', year: 'numeric', timeZone: 'Asia/Karachi' }) : '—'}
                                         </td>
                                         <td>
                                             <button

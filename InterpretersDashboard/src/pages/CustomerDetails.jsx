@@ -40,7 +40,7 @@ export function CustomerDetails() {
     // Group calls by date for chart
     const dateMap = {};
     calls.forEach(c => {
-        const d = new Date(c.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+        const d = new Date(c.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'Asia/Karachi' });
         dateMap[d] = (dateMap[d] || 0) + 1;
     });
     const chartData = Object.entries(dateMap)

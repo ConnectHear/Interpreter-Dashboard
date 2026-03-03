@@ -6,11 +6,14 @@
 function getPKTDate(daysOffset = 0) {
     const d = new Date();
     d.setDate(d.getDate() + daysOffset);
-    // Use local date components (server is in PKT)
-    const y = d.getFullYear();
-    const m = String(d.getMonth() + 1).padStart(2, '0');
-    const day = String(d.getDate()).padStart(2, '0');
-    return `${y}-${m}-${day}`;
+    // Explicitly format in Asia/Karachi timezone regardless of server timezone
+    const parts = new Intl.DateTimeFormat('en-CA', {
+        timeZone: 'Asia/Karachi',
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit'
+    }).format(d);
+    return parts; // returns YYYY-MM-DD
 }
 
 function getDateFilter(filter, column = 'created_at') {

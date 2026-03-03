@@ -44,7 +44,7 @@ export function InterpreterDetails() {
     const avgDuration = calls.filter(c => c.duration).reduce((acc, c, _, arr) => acc + Number(c.duration) / arr.length, 0);
 
     const chartData = dailyStats.map(d => ({
-        date: new Date(d.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+        date: new Date(d.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'Asia/Karachi' }),
         Total: Number(d.total),
         Completed: Number(d.completed),
     }));

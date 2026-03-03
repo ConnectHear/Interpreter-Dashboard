@@ -26,14 +26,16 @@ export function initials(name = '') {
 export function formatDate(dt) {
     if (!dt) return '—';
     return new Date(dt).toLocaleDateString('en-US', {
-        month: 'short', day: 'numeric', year: 'numeric'
+        month: 'short', day: 'numeric', year: 'numeric',
+        timeZone: 'Asia/Karachi'
     });
 }
 
 export function formatDateTime(dt) {
     if (!dt) return '—';
     return new Date(dt).toLocaleString('en-US', {
-        month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
+        month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit',
+        timeZone: 'Asia/Karachi'
     });
 }
 

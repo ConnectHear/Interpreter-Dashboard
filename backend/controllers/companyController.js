@@ -1,7 +1,7 @@
 const ExcelJS = require('exceljs');
 const pool = require('../config/db');
 const { EXCLUDED_EMAILS } = require('../utils/excludeList');
-const { getDateFilter, getPagination } = require('../utils/queryHelpers');
+const { getDateFilter, getPagination, getPKTDate } = require('../utils/queryHelpers');
 const cache = require('../utils/cache');
 
 // GET /api/companies
@@ -152,7 +152,7 @@ const getCompanyById = async (req, res) => {
             FROM monitoring_sessions ms
             LEFT JOIN customers cu ON cu.customer_id = ms.customer_id
             WHERE cu.company_id = ? AND cu.email NOT IN (?) 
-            AND ms.created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY)
+            AND ms.created_at >= '${getPKTDate(-30)} 00:00:00'
             GROUP BY DATE(ms.created_at)
             ORDER BY date ASC
         `, [id, EXCLUDED_EMAILS]);
@@ -216,7 +216,7 @@ const exportCompanyCalls = async (req, res) => {
             else if (call.status === 4) statusLabel = 'In Session';
 
             worksheet.addRow({
-                date: new Date(call.created_at).toLocaleString(),
+                date: new Date(call.created_at).toLocaleString('en-US', { timeZone: 'Asia/Karachi' }),
                 customer: call.customer_name || 'N/A',
                 email: call.customer_email || 'N/A',
                 interpreter: call.interpreter_name || 'N/A',
