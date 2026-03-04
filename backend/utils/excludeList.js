@@ -11,7 +11,13 @@ const EXCLUDED_EMAILS = [
     'mcareer259@gmail.com',
     'abdullahmajeed969@gmail.com',
     'saqibrashid246@gmail.com',
-    'saqibrashid717@gmail.com'
+    'saqibrashid717@gmail.com',
+    'areebaysid1234@gmail.com',
+    'naveennaveenamir@gmail.com', 
+    'ismailsadia2121@gmail.com',
+    'haiderabeer12@gmail.com' ,
+    'khankhanajmal887@gmail.com' , 
+    
 ];
 
 module.exports = { EXCLUDED_EMAILS }; 
