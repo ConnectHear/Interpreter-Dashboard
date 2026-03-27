@@ -17,6 +17,7 @@ async function getDashboardStats(filter = 'today') {
         [[{ total_customers }]],
         [[{ completed_count }]],
         [[{ missed_count }]],
+        [[{ unassisted_count }]],
         [[{ cancelled_count }]],
         [[{ disconnected_count }]]
     ] = await Promise.all([
@@ -34,6 +35,18 @@ async function getDashboardStats(filter = 'today') {
             SELECT COUNT(DISTINCT monitoring_id) AS missed_count
             FROM vw_missed_calls
             WHERE customer_email NOT IN (?) ${missedDateClause}
+        `, [EXCLUDED_EMAILS]),
+        pool.query(`
+            SELECT COUNT(DISTINCT inr.monitoring_id) AS unassisted_count
+            FROM vw_missed_calls inr
+            WHERE inr.customer_email NOT IN (?) ${missedDateClause}
+              AND NOT EXISTS (
+                  SELECT 1 FROM monitoring_sessions ms
+                  WHERE ms.customer_id = inr.customer_id
+                    AND ms.status = 2
+                    AND ms.created_at >= inr.missed_call_time
+                    AND ms.created_at <= DATE_ADD(inr.missed_call_time, INTERVAL 15 MINUTE)
+              )
         `, [EXCLUDED_EMAILS]),
         pool.query(`
             SELECT COUNT(*) AS cancelled_count
@@ -64,6 +77,7 @@ async function getDashboardStats(filter = 'today') {
         total_customers,
         calls_today: completed_count + missed_count,
         missed_today: missed_count,
+        unassisted_today: unassisted_count,
         cancelled_today: cancelled_count,
         completed_today: completed_count,
         disconnected_today: disconnected_count
