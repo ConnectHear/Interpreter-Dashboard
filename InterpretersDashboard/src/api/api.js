@@ -24,6 +24,7 @@ export const api = {
 
     // Missed Calls
     getMissedCalls: (f = 'all', p = 1, s = '') => get(`/missed-calls?filter=${f}&page=${p}&search=${encodeURIComponent(s)}`),
+    getTrueMissedCalls: (f = 'all', p = 1, s = '') => get(`/missed-calls/true?filter=${f}&page=${p}&search=${encodeURIComponent(s)}`),
 
     // Disconnected Calls (Status 0)
     getDisconnectedCalls: (f = 'all', p = 1, s = '') => get(`/pending-calls?filter=${f}&page=${p}&search=${encodeURIComponent(s)}`),

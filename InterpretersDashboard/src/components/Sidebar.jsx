@@ -59,6 +59,14 @@ const navItems = [
                 )
             },
             {
+                to: '/true-missed-calls', label: 'True Missed Calls', icon: (
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
+                        <line x1="23" y1="1" x2="1" y2="23" />
+                    </svg>
+                )
+            },
+            {
                 to: '/disconnected-calls', label: 'Disconnected Calls', icon: (
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                         <circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" />

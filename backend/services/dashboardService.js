@@ -17,9 +17,9 @@ async function getDashboardStats(filter = 'today') {
         [[{ total_customers }]],
         [[{ completed_count }]],
         [[{ missed_count }]],
-        [[{ unassisted_count }]],
         [[{ cancelled_count }]],
-        [[{ disconnected_count }]]
+        [[{ disconnected_count }]],
+        [[{ true_missed_count }]]
     ] = await Promise.all([
         pool.query(`SELECT COUNT(*) AS total_interpreters FROM vw_interpreter_list`),
         pool.query(`SELECT COUNT(*) AS active_interpreters FROM vw_interpreter_list WHERE online_status = 1`),
@@ -35,18 +35,6 @@ async function getDashboardStats(filter = 'today') {
             SELECT COUNT(DISTINCT monitoring_id) AS missed_count
             FROM vw_missed_calls
             WHERE customer_email NOT IN (?) ${missedDateClause}
-        `, [EXCLUDED_EMAILS]),
-        pool.query(`
-            SELECT COUNT(DISTINCT inr.monitoring_id) AS unassisted_count
-            FROM vw_missed_calls inr
-            WHERE inr.customer_email NOT IN (?) ${missedDateClause}
-              AND NOT EXISTS (
-                  SELECT 1 FROM monitoring_sessions ms
-                  WHERE ms.customer_id = inr.customer_id
-                    AND ms.status = 2
-                    AND ms.created_at >= inr.missed_call_time
-                    AND ms.created_at <= DATE_ADD(inr.missed_call_time, INTERVAL 15 MINUTE)
-              )
         `, [EXCLUDED_EMAILS]),
         pool.query(`
             SELECT COUNT(*) AS cancelled_count
@@ -67,6 +55,13 @@ async function getDashboardStats(filter = 'today') {
                   SELECT 1 FROM interpreter_notification_responses inr
                   WHERE inr.monitoring_id = vw_completed_sessions.monitoring_id
               )
+        `, [EXCLUDED_EMAILS]),
+        pool.query(`
+            SELECT COUNT(*) AS true_missed_count 
+            FROM vw_completed_sessions 
+            WHERE status != 2 AND interpreter_id IS NULL 
+              AND customer_email NOT IN (?) ${dateClause}
+              AND EXISTS (SELECT 1 FROM interpreter_notification_responses inr WHERE inr.monitoring_id = vw_completed_sessions.monitoring_id)
         `, [EXCLUDED_EMAILS])
     ]);
 
@@ -77,10 +72,10 @@ async function getDashboardStats(filter = 'today') {
         total_customers,
         calls_today: completed_count + missed_count,
         missed_today: missed_count,
-        unassisted_today: unassisted_count,
         cancelled_today: cancelled_count,
         completed_today: completed_count,
-        disconnected_today: disconnected_count
+        disconnected_today: disconnected_count,
+        true_missed_today: true_missed_count
     };
 }
 

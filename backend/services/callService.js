@@ -74,7 +74,48 @@ async function getPendingCalls({ filter = 'all', page = 1, limit = 20, search = 
     };
 }
 
+/**
+ * Paginated true missed calls list.
+ * Sessions where notifications were sent but NO interpreter joined.
+ */
+async function getTrueMissedCalls({ filter = 'all', page = 1, limit = 20, search = '' } = {}) {
+    const { limit: l, offset, page: p } = getPagination(page, limit);
+    const dateClause = getDateFilter(filter, 'created_at');
+
+    const searchLower = `%${search.toLowerCase()}%`;
+    const searchClause = search ? `AND (customer_name LIKE ? OR customer_email LIKE ?)` : '';
+    const searchParams = search ? [searchLower, searchLower] : [];
+
+    const [
+        [[{ total }]],
+        [rows]
+    ] = await Promise.all([
+        pool.query(`
+            SELECT COUNT(*) as total 
+            FROM vw_completed_sessions 
+            WHERE status != 2 AND interpreter_id IS NULL 
+              AND customer_email NOT IN (?) ${dateClause} ${searchClause}
+              AND EXISTS (SELECT 1 FROM interpreter_notification_responses inr WHERE inr.monitoring_id = vw_completed_sessions.monitoring_id)
+        `, [EXCLUDED_EMAILS, ...searchParams]),
+        pool.query(`
+            SELECT * 
+            FROM vw_completed_sessions 
+            WHERE status != 2 AND interpreter_id IS NULL 
+              AND customer_email NOT IN (?) ${dateClause} ${searchClause}
+              AND EXISTS (SELECT 1 FROM interpreter_notification_responses inr WHERE inr.monitoring_id = vw_completed_sessions.monitoring_id)
+            ORDER BY created_at DESC LIMIT ? OFFSET ?
+        `, [EXCLUDED_EMAILS, ...searchParams, l, offset])
+    ]);
+
+    return {
+        data: rows,
+        pagination: { total, page: p, limit: l, totalPages: Math.ceil(total / l) }
+    };
+}
+
+
 module.exports = {
     getMissedCalls,
-    getPendingCalls
+    getPendingCalls,
+    getTrueMissedCalls
 };

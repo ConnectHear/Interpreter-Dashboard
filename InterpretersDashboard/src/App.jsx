@@ -11,6 +11,7 @@ import { MissedCalls } from './pages/MissedCalls';
 import { Companies } from './pages/Companies';
 import { CompanyDetails } from './pages/CompanyDetails';
 import { PendingCalls } from './pages/PendingCalls';
+import { TrueMissedCalls } from './pages/TrueMissedCalls';
 import { Login } from './pages/Login';
 import './index.css';
 
@@ -41,6 +42,7 @@ function ProtectedLayout() {
           <Route path="/customers" element={<Customers />} />
           <Route path="/customers/:id" element={<CustomerDetails />} />
           <Route path="/missed-calls" element={<MissedCalls />} />
+          <Route path="/true-missed-calls" element={<TrueMissedCalls />} />
           <Route path="/disconnected-calls" element={<PendingCalls />} />
           <Route path="/companies" element={<Companies />} />
           <Route path="/companies/:id" element={<CompanyDetails />} />

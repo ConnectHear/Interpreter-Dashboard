@@ -137,9 +137,10 @@ export function Dashboard() {
                         />
                         <StatCard
                             color="red"
-                            label="User Never Assisted"
-                            value={stats?.unassisted_today}
-                            icon={<IconUserX />}
+                            label="True Missed Calls"
+                            value={stats?.true_missed_today}
+                            icon={<IconPhoneMissed />}
+                            onClick={() => navigate('/true-missed-calls')}
                         />
                     </div>
                 )}
