@@ -51,18 +51,15 @@ async function getPendingCalls({ filter = 'all', page = 1, limit = 20, search = 
         [frequentPendingUsers]
     ] = await Promise.all([
         pool.query(`
-            SELECT COUNT(*) as total FROM vw_completed_sessions WHERE interpreter_id IS NULL AND customer_email NOT IN (?) ${dateClause} ${searchClause}
-            AND NOT EXISTS (SELECT 1 FROM interpreter_notification_responses inr WHERE inr.monitoring_id = vw_completed_sessions.monitoring_id)
+            SELECT COUNT(*) as total FROM vw_completed_sessions WHERE status = 0 AND customer_email NOT IN (?) ${dateClause} ${searchClause}
         `, [EXCLUDED_EMAILS, ...searchParams]),
         pool.query(`
-            SELECT * FROM vw_completed_sessions WHERE interpreter_id IS NULL AND customer_email NOT IN (?) ${dateClause} ${searchClause}
-            AND NOT EXISTS (SELECT 1 FROM interpreter_notification_responses inr WHERE inr.monitoring_id = vw_completed_sessions.monitoring_id)
+            SELECT * FROM vw_completed_sessions WHERE status = 0 AND customer_email NOT IN (?) ${dateClause} ${searchClause}
             ORDER BY created_at DESC LIMIT ? OFFSET ?
         `, [EXCLUDED_EMAILS, ...searchParams, l, offset]),
         pool.query(`
             SELECT customer_id, customer_name AS name, customer_email AS email, COUNT(*) AS pending_count
-            FROM vw_completed_sessions WHERE interpreter_id IS NULL AND customer_email NOT IN (?) ${dateClause}
-            AND NOT EXISTS (SELECT 1 FROM interpreter_notification_responses inr WHERE inr.monitoring_id = vw_completed_sessions.monitoring_id)
+            FROM vw_completed_sessions WHERE status = 0 AND customer_email NOT IN (?) ${dateClause}
             GROUP BY customer_id, customer_name, customer_email ORDER BY pending_count DESC LIMIT 10
         `, [EXCLUDED_EMAILS])
     ]);

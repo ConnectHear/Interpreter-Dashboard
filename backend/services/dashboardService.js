@@ -49,12 +49,8 @@ async function getDashboardStats(filter = 'today') {
         pool.query(`
             SELECT COUNT(*) AS disconnected_count
             FROM vw_completed_sessions
-            WHERE interpreter_id IS NULL
+            WHERE status = 0
               AND customer_email NOT IN (?) ${dateClause}
-              AND NOT EXISTS (
-                  SELECT 1 FROM interpreter_notification_responses inr
-                  WHERE inr.monitoring_id = vw_completed_sessions.monitoring_id
-              )
         `, [EXCLUDED_EMAILS]),
         pool.query(`
             SELECT COUNT(*) AS true_missed_count 
@@ -70,7 +66,7 @@ async function getDashboardStats(filter = 'today') {
         active_interpreters,
         on_call,
         total_customers,
-        calls_today: completed_count + missed_count,
+        calls_today: completed_count + true_missed_count + cancelled_count + disconnected_count,
         missed_today: missed_count,
         cancelled_today: cancelled_count,
         completed_today: completed_count,
@@ -101,12 +97,14 @@ async function getCallsTrend() {
                     )
                 ) AS cancelled,
                 SUM(
-                    interpreter_id IS NULL
-                    AND NOT EXISTS (
+                    status != 2
+                    AND interpreter_id IS NULL
+                    AND EXISTS (
                         SELECT 1 FROM interpreter_notification_responses inr
                         WHERE inr.monitoring_id = vw_completed_sessions.monitoring_id
                     )
-                ) AS disconnected
+                ) AS true_missed,
+                SUM(status = 0) AS disconnected
             FROM vw_completed_sessions
             WHERE created_at >= '${weekAgo} 00:00:00'
               AND customer_email NOT IN (?)
@@ -131,7 +129,7 @@ async function getCallsTrend() {
     return rows.map(r => ({
         ...r,
         missed: missedMap[r.date] || 0,
-        total: (r.completed || 0) + (missedMap[r.date] || 0)
+        total: (r.completed || 0) + (r.true_missed || 0) + (r.cancelled || 0) + (r.disconnected || 0)
     }));
 }
 
