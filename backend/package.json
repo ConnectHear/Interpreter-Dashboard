@@ -1,10 +1,16 @@
 {
   "name": "backend",
   "version": "1.0.0",
-  "main": "app.js",
+  "main": "index.js",
+  "engines": {
+    "node": "20"
+  },
   "scripts": {
     "start": "node app.js",
     "dev": "nodemon app.js",
+    "serve": "firebase emulators:start --only functions",
+    "deploy": "firebase deploy --only functions:api",
+    "logs": "firebase functions:log",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "",
@@ -15,9 +21,12 @@
     "dotenv": "^17.3.1",
     "exceljs": "^4.4.0",
     "express": "^5.2.1",
+    "firebase-functions": "^6.0.0",
     "jsonwebtoken": "^9.0.3",
     "mysql2": "^3.18.0",
-    "node-cache": "^5.1.2",
+    "node-cache": "^5.1.2"
+  },
+  "devDependencies": {
     "nodemon": "^3.1.14"
   }
 }
