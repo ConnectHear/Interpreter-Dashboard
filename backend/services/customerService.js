@@ -5,8 +5,9 @@ const { getDateFilter, getPKTDate, getPagination } = require('../utils/queryHelp
 /**
  * Paginated customer list with aggregated call stats.
  */
-async function getAllCustomers({ filter = 'all', page = 1, limit = 20, search = '', subFilter = 'all' } = {}) {
-    const { limit: l, offset, page: p } = getPagination(page, limit);
+async function getAllCustomers({ filter = 'all', page = 1, limit = 20, search = '', subFilter = 'all', offset: customOffset } = {}) {
+    const { limit: l, offset: defaultOffset, page: p } = getPagination(page, limit);
+    const offset = customOffset !== undefined ? parseInt(customOffset) : defaultOffset;
     const msDateClause = getDateFilter(filter, 'created_at');
     const inrDateClause = getDateFilter(filter, 'missed_call_time');
 
@@ -67,9 +68,10 @@ async function getAllCustomers({ filter = 'all', page = 1, limit = 20, search = 
     }
 
     const finalQuery = `
-        SELECT cl_main.*, stats.*
+        SELECT cl_main.*, stats.*, c.mobile_number, c.type
         FROM vw_customer_list cl_main
         JOIN (${statsQuery}) stats ON cl_main.customer_id = stats.customer_id
+        LEFT JOIN customers c ON cl_main.customer_id = c.customer_id
         ${subFilterClause}
         ORDER BY total_calls DESC
         LIMIT ? OFFSET ?

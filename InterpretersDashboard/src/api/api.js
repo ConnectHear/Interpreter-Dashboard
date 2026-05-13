@@ -19,7 +19,12 @@ export const api = {
         get(`/interpreters/${encodeURIComponent(id)}?filter=${f}`),
 
     // Customers
-    getCustomers: (f = 'all', p = 1, s = '', sf = 'all') => get(`/customers?filter=${f}&page=${p}&search=${encodeURIComponent(s)}&subFilter=${sf}`),
+    getCustomers: (f = 'all', p = 1, s = '', sf = 'all', limit, offset) => {
+        let url = `/customers?filter=${f}&page=${p}&search=${encodeURIComponent(s)}&subFilter=${sf}`;
+        if (limit !== undefined) url += `&limit=${limit}`;
+        if (offset !== undefined) url += `&offset=${offset}`;
+        return get(url);
+    },
     getCustomerById: (id, f = 'all') => get(`/customers/${encodeURIComponent(id)}?filter=${f}`),
 
     // Missed Calls

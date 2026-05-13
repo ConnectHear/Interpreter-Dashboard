@@ -8,8 +8,8 @@ const getAllCustomers = async (req, res) => {
         const cachedData = cache.get(cacheKey);
         if (cachedData) return res.json(cachedData);
 
-        const { filter = 'all', page = 1, limit = 20, search = '', subFilter = 'all' } = req.query;
-        const data = await db.getAllCustomers({ filter, page, limit, search, subFilter });
+        const { filter = 'all', page = 1, limit = 20, search = '', subFilter = 'all', offset } = req.query;
+        const data = await db.getAllCustomers({ filter, page, limit, search, subFilter, offset });
 
         cache.set(cacheKey, data);
         res.json(data);

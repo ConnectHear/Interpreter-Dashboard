@@ -6,14 +6,88 @@ import { Avatar } from '../components/Avatar';
 import { Pagination } from '../components/Pagination';
 import { timeAgo, formatDate } from '../utils/helpers';
 
-import { DateFilter } from '../components/DateFilter';
-
 export function Customers() {
     const [page, setPage] = useState(1);
     const [search, setSearch] = useState('');
     const [debouncedSearch, setDebouncedSearch] = useState('');
     const [tab, setTab] = useState('all');
     const [dateFilter, setDateFilter] = useState('all');
+    const [exportRange, setExportRange] = useState('1-500');
+    const [customStart, setCustomStart] = useState('1');
+    const [customEnd, setCustomEnd] = useState('500');
+    const [isExporting, setIsExporting] = useState(false);
+
+    const handleExport = async () => {
+        setIsExporting(true);
+        try {
+            let limit = 500;
+            let offset = 0;
+
+            if (exportRange === '1-500') {
+                limit = 500;
+                offset = 0;
+            } else if (exportRange === '501-1000') {
+                limit = 500;
+                offset = 500;
+            } else if (exportRange === 'custom') {
+                const start = parseInt(customStart) || 1;
+                const end = parseInt(customEnd) || 1;
+                limit = Math.max(1, end - start + 1);
+                offset = Math.max(0, start - 1);
+            }
+
+            // Fetch data
+            const response = await api.getCustomers(dateFilter, 1, debouncedSearch, tab, limit, offset);
+            const dataToExport = response?.data || [];
+
+            if (!dataToExport.length) {
+                alert('No data found for the selected range.');
+                return;
+            }
+
+            // Generate CSV
+            const headers = ['Name', 'Email', 'Phone', 'Type', 'Total Calls', 'Completed', 'Cancelled', 'Missed by Interpreters', 'Last Call', 'Status'];
+            const csvRows = [headers.join(',')];
+
+            dataToExport.forEach(c => {
+                const formatValue = (val, isPhone = false) => {
+                    if (val === null || val === undefined || val === '') return '"Not Available"';
+                    const str = String(val).replace(/"/g, '""');
+                    if (isPhone) return `="${str}"`;
+                    return `"${str}"`;
+                };
+
+                const row = [
+                    formatValue(c.name),
+                    formatValue(c.email),
+                    formatValue(c.mobile_number, true),
+                    formatValue(c.type),
+                    c.total_calls || 0,
+                    c.completed_calls || 0,
+                    c.cancelled_calls || 0,
+                    c.missed_by_interpreters || 0,
+                    formatValue(c.last_call ? formatDate(c.last_call) : ''),
+                    `"${c.status ? 'Active' : 'Inactive'}"`
+                ];
+                csvRows.push(row.join(','));
+            });
+
+            const csvString = csvRows.join('\n');
+            const blob = new Blob([csvString], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.setAttribute('download', `customers_export_${tab}_${exportRange}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        } catch (err) {
+            console.error('Export failed:', err);
+            alert('Export failed: ' + err.message);
+        } finally {
+            setIsExporting(false);
+        }
+    };
 
     useEffect(() => {
         const timer = setTimeout(() => setDebouncedSearch(search), 500);
@@ -40,7 +114,6 @@ export function Customers() {
                         User activity and experience monitoring
                     </div>
                 </div>
-                <DateFilter value={dateFilter} onChange={(f) => { setDateFilter(f); setPage(1); }} />
             </div>
 
             {/* Alert cards */}
@@ -111,6 +184,53 @@ export function Customers() {
                         </button>
                         <button className={`filter-tab ${tab === 'both' ? 'active' : ''}`} onClick={() => { setTab('both'); setPage(1); }}>
                             🔥 + ⚠️ Both
+                        </button>
+                    </div>
+
+                    {/* Export Controls */}
+                    <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+                        <select 
+                            value={exportRange} 
+                            onChange={e => setExportRange(e.target.value)}
+                            style={{ padding: '6px 12px', borderRadius: 6, border: '1px solid var(--border)', background: 'var(--card-bg)', color: 'var(--text-primary)', fontSize: 13 }}
+                        >
+                            <option value="1-500">1 - 500</option>
+                            <option value="501-1000">501 - 1000</option>
+                            <option value="custom">Custom Range</option>
+                        </select>
+
+                        {exportRange === 'custom' && (
+                            <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
+                                <input
+                                    type="number"
+                                    placeholder="Start"
+                                    value={customStart}
+                                    onChange={e => setCustomStart(e.target.value)}
+                                    style={{ width: 70, padding: '6px', borderRadius: 6, border: '1px solid var(--border)', background: 'var(--card-bg)', color: 'var(--text-primary)', fontSize: 13 }}
+                                />
+                                <span style={{ color: 'var(--text-muted)', fontSize: 13 }}>to</span>
+                                <input
+                                    type="number"
+                                    placeholder="End"
+                                    value={customEnd}
+                                    onChange={e => setCustomEnd(e.target.value)}
+                                    style={{ width: 70, padding: '6px', borderRadius: 6, border: '1px solid var(--border)', background: 'var(--card-bg)', color: 'var(--text-primary)', fontSize: 13 }}
+                                />
+                            </div>
+                        )}
+
+                        <button 
+                            onClick={handleExport}
+                            disabled={isExporting}
+                            className="btn btn-primary"
+                            style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '6px 12px', fontSize: 13 }}
+                        >
+                            {isExporting ? <div className="spinner" style={{ width: 12, height: 12 }} /> : (
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
+                                </svg>
+                            )}
+                            {isExporting ? 'Exporting...' : 'Export'}
                         </button>
                     </div>
                 </div>
